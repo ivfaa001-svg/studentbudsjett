@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studentbudsjett 26/27</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0F1E1A;
+    --bg-2: #142A24;
+    --surface: #17302A;
+    --surface-2: #1D3A32;
+    --line: rgba(243,239,228,0.09);
+    --line-strong: rgba(243,239,228,0.16);
+    --ink: #F3EFE4;
+    --ink-dim: #A9BBB2;
+    --ink-faint: #6F8981;
+    --gold: #D9A94E;
+    --gold-dim: #7C6636;
+    --coral: #E3694E;
+    --coral-dim: #6B3529;
+    --sage: #7FAE8C;
+    --sage-dim: #35513E;
+    --radius-lg: 22px;
+    --radius-md: 14px;
+    --radius-sm: 9px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(217,169,78,0.08), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(127,174,140,0.07), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Instrument Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding:28px 16px 80px;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+
+  /* ---------- Header ---------- */
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap;}
+  .eyebrow{
+    font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);
+    font-weight:600;margin:0 0 6px;
+  }
+  h1{
+    font-family:'Fraunces', serif;font-weight:500;font-size:30px;line-height:1.05;
+    margin:0;color:var(--ink);letter-spacing:-.01em;
+  }
+  .view-toggle{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;}
+  .view-toggle button{
+    border:none;background:transparent;color:var(--ink-dim);font-family:inherit;font-size:13px;font-weight:600;
+    padding:8px 16px;border-radius:999px;cursor:pointer;transition:background .18s,color .18s;
+  }
+  .view-toggle button.active{background:var(--gold);color:#1B1305;}
+
+  /* ---------- Setup banner ---------- */
+  .setup-banner{
+    background:var(--coral-dim);border:1px solid var(--coral);color:#ffd9cd;
+    border-radius:var(--radius-md);padding:12px 16px;font-size:12.5px;line-height:1.6;margin-bottom:16px;
+  }
+  .setup-banner code{background:rgba(0,0,0,0.25);padding:1px 6px;border-radius:5px;font-size:11.5px;}
+
+  /* ---------- Month rail ---------- */
+  .month-rail{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 14px;margin-bottom:18px;scrollbar-width:none;}
+  .month-rail::-webkit-scrollbar{display:none;}
+  .month-pill{
+    flex:0 0 auto;padding:9px 15px;border-radius:999px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink-dim);font-size:13px;font-weight:600;cursor:pointer;
+    white-space:nowrap;transition:all .15s;
+  }
+  .month-pill:hover{border-color:var(--line-strong);color:var(--ink);}
+  .month-pill.active{background:var(--ink);color:var(--bg-2);border-color:var(--ink);}
+  .month-pill .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;position:relative;top:-1px;}
+
+  /* ---------- Card shell ---------- */
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+    padding:22px;margin-bottom:16px;
+  }
+  .card h2{
+    font-family:'Fraunces', serif;font-weight:500;font-size:17px;margin:0 0 16px;color:var(--ink);
+  }
+  .card h2 .muted{color:var(--ink-faint);font-weight:400;font-size:13px;font-family:'Instrument Sans',sans-serif;margin-left:8px;}
+
+  /* ---------- Overview card ---------- */
+  .overview{display:flex;gap:22px;align-items:center;}
+  .gauge-box{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .gauge{
+    width:74px;height:168px;border-radius:37px;background:var(--surface-2);
+    border:1px solid var(--line-strong);position:relative;overflow:hidden;
+    box-shadow:inset 0 2px 8px rgba(0,0,0,.25);
+  }
+  .gauge-fill{
+    position:absolute;left:0;right:0;bottom:0;border-radius:0 0 36px 36px;
+    transition:height .5s cubic-bezier(.4,0,.2,1), background .5s;
+  }
+  .gauge-fill::after{
+    content:'';position:absolute;top:0;left:0;right:0;height:10px;
+    background:rgba(255,255,255,0.18);border-radius:50%;transform:translateY(-5px);
+  }
+  .gauge-label{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+  .stat-col{flex:1;min-width:0;}
+  .stat-row{
+    display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .stat-row:last-child{border-bottom:none;}
+  .stat-name{font-size:13.5px;color:var(--ink-dim);}
+  .stat-value{font-family:'Fraunces', serif;font-size:19px;font-weight:500;}
+  .stat-value.gold{color:var(--gold);}
+  .stat-value.coral{color:var(--coral);}
+  .stat-row.remaining .stat-name{color:var(--ink);font-weight:600;}
+  .stat-row.remaining .stat-value{font-size:24px;}
+  .remaining-big{font-family:'Fraunces', serif;font-weight:500;}
+  .remaining-big.pos{color:var(--sage);}
+  .remaining-big.neg{color:var(--coral);}
+
+  /* ---------- Category breakdown ---------- */
+  .cat-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .cat-row:last-child{margin-bottom:0;}
+  .cat-name{width:150px;flex:0 0 auto;font-size:13px;color:var(--ink-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cat-bar-track{flex:1;height:9px;border-radius:5px;background:var(--surface-2);overflow:hidden;}
+  .cat-bar-fill{height:100%;border-radius:5px;background:linear-gradient(90deg, var(--coral-dim), var(--coral));}
+  .cat-amount{width:78px;flex:0 0 auto;text-align:right;font-size:13px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .empty-note{color:var(--ink-faint);font-size:13px;padding:6px 0;}
+
+  /* ---------- Transactions ---------- */
+  .tx-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .tx-head h2{margin:0;}
+  .add-btn{
+    background:var(--gold);color:#1B1305;border:none;border-radius:999px;padding:9px 16px;
+    font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;transition:transform .12s,background .15s;
+  }
+  .add-btn:hover{background:#e6ba63;}
+  .add-btn:active{transform:scale(.96);}
+
+  .tx-form{
+    display:none;background:var(--surface-2);border:1px solid var(--line-strong);border-radius:var(--radius-md);
+    padding:16px;margin-bottom:16px;
+  }
+  .tx-form.open{display:block;}
+  .tx-form .row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+  .tx-form .row:last-child{margin-bottom:0;}
+  .field{flex:1;min-width:120px;display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);font-weight:600;}
+  .field input, .field select{
+    background:var(--surface);border:1px solid var(--line-strong);color:var(--ink);border-radius:9px;
+    padding:9px 10px;font-family:inherit;font-size:13.5px;outline:none;
+  }
+  .field input:focus, .field select:focus{border-color:var(--gold);}
+  .type-toggle{display:flex;gap:6px;}
+  .type-toggle button{
+    flex:1;padding:9px 0;border-radius:9px;border:1px solid var(--line-strong);background:var(--surface);
+    color:var(--ink-dim);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .type-toggle button.active[data-type="inntekt"]{background:var(--sage-dim);border-color:var(--sage);color:var(--sage);}
+  .type-toggle button.active[data-type="utgift"]{background:var(--coral-dim);border-color:var(--coral);color:#ffb9a3;}
+  .form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px;}
+  .btn-ghost{background:transparent;border:1px solid var(--line-strong);color:var(--ink-dim);border-radius:9px;padding:9px 14px;font-family:inherit;font-size:13px;cursor:pointer;}
+  .btn-primary{background:var(--gold);border:none;color:#1B1305;border-radius:9px;padding:9px 16px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;}
+
+  .tx-list{display:flex;flex-direction:column;}
+  .tx-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);}
+  .tx-item:last-child{border-bottom:none;}
+  .tx-date{width:44px;flex:0 0 auto;font-size:12px;color:var(--ink-faint);font-variant-numeric:tabular-nums;}
+  .tx-icon{
+    width:30px;height:30px;border-radius:9px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    font-size:14px;
+  }
+  .tx-icon.locked{background:var(--gold-dim);color:var(--gold);}
+  .tx-icon.income{background:var(--sage-dim);color:var(--sage);}
+  .tx-icon.expense{background:var(--coral-dim);color:#ffb9a3;}
+  .tx-mid{flex:1;min-width:0;}
+  .tx-title{font-size:13.5px;color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tx-sub{font-size:11.5px;color:var(--ink-faint);}
+  .tx-amt{font-family:'Fraunces', serif;font-size:15px;font-weight:500;flex:0 0 auto;font-variant-numeric:tabular-nums;}
+  .tx-amt.pos{color:var(--sage);}
+  .tx-amt.neg{color:var(--ink);}
+  .tx-del{
+    width:22px;height:22px;border-radius:50%;border:none;background:transparent;color:var(--ink-faint);
+    cursor:pointer;font-size:14px;line-height:1;flex:0 0 auto;transition:color .15s,background .15s;
+  }
+  .tx-del:hover{color:var(--coral);background:var(--coral-dim);}
+  .tx-del.spacer{visibility:hidden;}
+
+  /* ---------- Year view ---------- */
+  .trend-row{display:flex;align-items:flex-end;gap:6px;height:110px;margin-bottom:8px;}
+  .trend-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px;}
+  .trend-bar{width:100%;max-width:34px;border-radius:6px 6px 3px 3px;min-height:4px;transition:height .4s;}
+  .trend-bar.pos{background:linear-gradient(180deg, var(--sage), var(--sage-dim));}
+  .trend-bar.neg{background:linear-gradient(180deg, var(--coral), var(--coral-dim));}
+  .trend-lbl{font-size:10px;color:var(--ink-faint);}
+
+  .yr-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  .yr-stat{background:var(--surface-2);border-radius:var(--radius-md);padding:14px;}
+  .yr-stat .lbl{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:6px;}
+  .yr-stat .val{font-family:'Fraunces', serif;font-size:20px;font-weight:500;}
+
+  footer{text-align:center;color:var(--ink-faint);font-size:11.5px;margin-top:26px;line-height:1.6;}
+
+  @media (max-width:520px){
+    .overview{flex-direction:row;align-items:center;}
+    .gauge{width:56px;height:130px;}
+    .yr-stats{grid-template-columns:1fr;}
+    .cat-name{width:110px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <p class="eyebrow">Lånekassen &middot; Studieår 2026/2027</p>
+      <h1 id="title">Studentbudsjett</h1>
+    </div>
+    <div class="view-toggle">
+      <button id="btn-month" class="active">Måned</button>
+      <button id="btn-year">Årsoversikt</button>
+    </div>
+  </header>
+
+  <div class="setup-banner" id="setupBanner" style="display:none;">
+    <strong>Ikke koblet til database ennå.</strong>
+    Fyll inn <code>SUPABASE_URL</code> og <code>SUPABASE_KEY</code> øverst i &lt;script&gt;-taggen (se instruksjonene du fikk) for at data skal synke mellom laptop og telefon.
+    Frem til da lagres alt kun i denne nettleseren.
+  </div>
+
+  <div class="month-rail" id="monthRail"></div>
+
+  <!-- ===== MONTH VIEW ===== -->
+  <div id="monthView">
+
+    <div class="card overview">
+      <div class="gauge-box">
+        <div class="gauge"><div class="gauge-fill" id="gaugeFill"></div></div>
+        <div class="gauge-label">Igjen</div>
+      </div>
+      <div class="stat-col">
+        <div class="stat-row">
+          <span class="stat-name">Inntekt denne måneden</span>
+          <span class="stat-value gold" id="incomeVal">0 kr</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">Brukt denne måneden</span>
+          <span class="stat-value coral" id="spentVal">0 kr</span>
+        </div>
+        <div class="stat-row remaining">
+          <span class="stat-name">Har du igjen</span>
+          <span class="stat-value remaining-big" id="remainVal">0 kr</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Hvor pengene går <span class="muted">utgifter denne måneden, etter kategori</span></h2>
+      <div id="catBreakdown"></div>
+    </div>
+
+    <div class="card">
+      <div class="tx-head">
+        <h2 style="margin:0;">Transaksjoner</h2>
+        <button class="add-btn" id="toggleForm">+ Legg til</button>
+      </div>
+
+      <div class="tx-form" id="txForm">
+        <div class="row">
+          <div class="field" style="flex:0 0 140px;">
+            <label>Type</label>
+            <div class="type-toggle">
+              <button type="button" data-type="inntekt" id="typeInntekt">Inntekt</button>
+              <button type="button" data-type="utgift" class="active" id="typeUtgift">Utgift</button>
+            </div>
+          </div>
+          <div class="field" style="flex:0 0 140px;">
+            <label>Dato</label>
+            <input type="date" id="fDate">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Kategori</label>
+            <select id="fCategory"></select>
+          </div>
+          <div class="field" style="flex:0 0 120px;">
+            <label>Beløp (kr)</label>
+            <input type="number" id="fAmount" placeholder="0" min="0" step="1">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Beskrivelse</label>
+            <input type="text" id="fDesc" placeholder="F.eks. Rema 1000, husleie oktober …">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-ghost" id="cancelForm">Avbryt</button>
+          <button class="btn-primary" id="saveForm">Lagre</button>
+        </div>
+      </div>
+
+      <div class="tx-list" id="txList"></div>
+    </div>
+  </div>
+
+  <!-- ===== YEAR VIEW ===== -->
+  <div id="yearView" style="display:none;">
+
+    <div class="card">
+      <h2>Saldo per måned <span class="muted">hva du sitter igjen med, hele året</span></h2>
+      <div class="trend-row" id="trendRow"></div>
+    </div>
+
+    <div class="card">
+      <h2>Studieåret samlet</h2>
+      <div class="yr-stats">
+        <div class="yr-stat"><div class="lbl">Total inntekt</div><div class="val" id="yrIncome" style="color:var(--gold);">0 kr</div></div>
+        <div class="yr-stat"><div class="lbl">Totalt brukt</div><div class="val" id="yrSpent" style="color:var(--coral);">0 kr</div></div>
+        <div class="yr-stat"><div class="lbl">Igjen for året</div><div class="val" id="yrRemain">0 kr</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Hvor pengene gikk <span class="muted">utgifter hele året, etter kategori</span></h2>
+      <div id="yrCatBreakdown"></div>
+    </div>
+  </div>
+
+  <footer>
+    Studielånet legges inn automatisk hver måned etter Lånekassens utbetalingsplan — du trenger ikke føre det selv.<br>
+    Alt annet du logger her lagres kun for deg.
+  </footer>
+</div>
+
+<script>
+/* ---------------- Data model ---------------- */
+const MONTHS = [
+  {id:"2026-08", label:"Aug 2026", short:"Aug", loanDate:"2026-08-15", loanAmount:30976},
+  {id:"2026-09", label:"Sep 2026", short:"Sep", loanDate:"2026-09-15", loanAmount:11616},
+  {id:"2026-10", label:"Okt 2026", short:"Okt", loanDate:"2026-10-15", loanAmount:11616},
+  {id:"2026-11", label:"Nov 2026", short:"Nov", loanDate:"2026-11-15", loanAmount:11616},
+  {id:"2026-12", label:"Des 2026", short:"Des", loanDate:"2026-12-15", loanAmount:11616},
+  {id:"2027-01", label:"Jan 2027", short:"Jan", loanDate:"2027-01-15", loanAmount:30976},
+  {id:"2027-02", label:"Feb 2027", short:"Feb", loanDate:"2027-02-15", loanAmount:11616},
+  {id:"2027-03", label:"Mar 2027", short:"Mar", loanDate:"2027-03-15", loanAmount:11616},
+  {id:"2027-04", label:"Apr 2027", short:"Apr", loanDate:"2027-04-15", loanAmount:11616},
+  {id:"2027-05", label:"Mai 2027", short:"Mai", loanDate:"2027-05-15", loanAmount:11616},
+  {id:"2027-06", label:"Jun 2027", short:"Jun", loanDate:"2027-06-15", loanAmount:15488},
+];
+
+const INCOME_CATS = ["Jobb","Overføring fra foreldre","Stipend","Annet"];
+const EXPENSE_CATS = [
+  "Leie","Strøm","Internett/mobil","Forsikring","Transport","Treningssenter",
+  "Strømmetjenester","Andre faste utgifter","Mat og dagligvarer","Alkohol",
+  "Uteliv og restaurant","Kaffe og snacks","Klær","Hygiene og personlig pleie",
+  "Fritid og hobby","Bøker og skolemateriell","Gaver","Annet"
+];
+
+const SEED = {
+  "2026-08": [
+    {id:"seed1", date:"2026-08-02", type:"utgift", category:"Alkohol", desc:"Øl Sverre", amount:240},
+    {id:"seed2", date:"2026-08-03", type:"utgift", category:"Annet", desc:"Depositum", amount:14000}
+  ]
+};
+
+let DATA = {};
+let currentMonth = null;
+let currentView = "month";
+
+const fmt = n => Math.round(n).toLocaleString('nb-NO').replace(/,/g,' ') + " kr";
+const monthOf = d => MONTHS.find(m=>m.id===d) || MONTHS[0];
+const dayLabel = iso => { const [,mo,da]=iso.split('-'); return da+"."+mo; };
+
+/* ---------------- Storage ----------------
+   Three tiers, in priority order:
+   1. Supabase (real database) — fill in SUPABASE_URL / SUPABASE_KEY below.
+      This is what makes data sync between your laptop and your phone,
+      since both talk to the same database over the internet.
+   2. window.storage — used automatically when this file is opened inside
+      a claude.ai artifact and Supabase isn't configured.
+   3. localStorage — last resort, only saves inside this one browser,
+      used when the file is opened directly and Supabase isn't configured. */
+
+const SUPABASE_URL = 'https://fvrdovffricbpbcflctq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_hg9tco19RrmNdhUEYpZ3JQ_yCC42kLg';
+const supabaseConfigured = SUPABASE_URL.startsWith('http') && SUPABASE_KEY.length > 20;
+
+const sbHeaders = {
+  'apikey': SUPABASE_KEY,
+  'Content-Type': 'application/json'
+};
+
+const LS_KEY = 'studentbudsjett-2026-2027';
+const hasCloudStorage = !!(window.storage && typeof window.storage.get === 'function');
+
+async function loadData(){
+  try{
+    if(supabaseConfigured){
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/budget_kv?key=eq.budget-data&select=value`, {headers: sbHeaders});
+      if(!res.ok) throw new Error('Supabase svarte ' + res.status);
+      const rows = await res.json();
+      DATA = (rows && rows[0] && rows[0].value) ? rows[0].value : {};
+    } else if(hasCloudStorage){
+      const res = await window.storage.get('budget-data', false);
+      DATA = res && res.value ? JSON.parse(res.value) : {};
+    } else {
+      const raw = localStorage.getItem(LS_KEY);
+      DATA = raw ? JSON.parse(raw) : {};
+    }
+  }catch(e){ console.error('Kunne ikke laste data', e); DATA = {}; }
+  let changed = false;
+  MONTHS.forEach(m=>{
+    if(!DATA[m.id]){ DATA[m.id] = SEED[m.id] ? JSON.parse(JSON.stringify(SEED[m.id])) : []; changed = true; }
+  });
+  if(changed) await saveData();
+}
+async function saveData(){
+  try{
+    if(supabaseConfigured){
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/budget_kv?on_conflict=key`, {
+        method: 'POST',
+        headers: {...sbHeaders, 'Prefer': 'resolution=merge-duplicates,return=minimal'},
+        body: JSON.stringify({key: 'budget-data', value: DATA, updated_at: new Date().toISOString()})
+      });
+      if(!res.ok) throw new Error('Supabase svarte ' + res.status);
+    } else if(hasCloudStorage){
+      await window.storage.set('budget-data', JSON.stringify(DATA), false);
+    } else {
+      localStorage.setItem(LS_KEY, JSON.stringify(DATA));
+    }
+  }
+  catch(e){ console.error('Kunne ikke lagre', e); }
+}
+
+/* ---------------- Computation ---------------- */
+function monthTotals(id){
+  const m = monthOf(id);
+  const tx = DATA[id] || [];
+  const manualIncome = tx.filter(t=>t.type==='inntekt').reduce((s,t)=>s+Number(t.amount),0);
+  const spent = tx.filter(t=>t.type==='utgift').reduce((s,t)=>s+Number(t.amount),0);
+  const income = m.loanAmount + manualIncome;
+  const remaining = income - spent;
+  return {income, spent, remaining, manualIncome, loan:m.loanAmount};
+}
+function categoryBreakdown(id){
+  const tx = DATA[id] || [];
+  const map = {};
+  tx.filter(t=>t.type==='utgift').forEach(t=>{ map[t.category]=(map[t.category]||0)+Number(t.amount); });
+  return Object.entries(map).sort((a,b)=>b[1]-a[1]);
+}
+function yearCategoryBreakdown(){
+  const map = {};
+  MONTHS.forEach(m=>{
+    (DATA[m.id]||[]).filter(t=>t.type==='utgift').forEach(t=>{ map[t.category]=(map[t.category]||0)+Number(t.amount); });
+  });
+  return Object.entries(map).sort((a,b)=>b[1]-a[1]);
+}
+
+/* ---------------- Rendering ---------------- */
+function renderMonthRail(){
+  const rail = document.getElementById('monthRail');
+  rail.innerHTML = '';
+  MONTHS.forEach(m=>{
+    const {remaining} = monthTotals(m.id);
+    const btn = document.createElement('button');
+    btn.className = 'month-pill' + (m.id===currentMonth ? ' active':'');
+    const dotColor = remaining<0 ? 'var(--coral)' : 'var(--sage)';
+    btn.innerHTML = `<span class="dot" style="background:${dotColor}"></span>${m.short}`;
+    btn.onclick = ()=>{ currentMonth=m.id; renderAll(); };
+    rail.appendChild(btn);
+  });
+}
+
+function renderOverview(){
+  const t = monthTotals(currentMonth);
+  document.getElementById('incomeVal').textContent = fmt(t.income);
+  document.getElementById('spentVal').textContent = fmt(t.spent);
+  const remainEl = document.getElementById('remainVal');
+  remainEl.textContent = fmt(t.remaining);
+  remainEl.classList.remove('pos','neg');
+  remainEl.classList.add(t.remaining < 0 ? 'neg' : 'pos');
+
+  const pct = t.income > 0 ? Math.max(0, Math.min(100, (t.remaining/t.income)*100)) : 0;
+  const fill = document.getElementById('gaugeFill');
+  fill.style.height = pct + '%';
+  fill.style.background = t.remaining < 0
+    ? 'linear-gradient(180deg, var(--coral), var(--coral-dim))'
+    : (pct < 25 ? 'linear-gradient(180deg, var(--gold), var(--coral-dim))' : 'linear-gradient(180deg, var(--sage), var(--sage-dim))');
+}
+
+function renderCategoryBreakdown(){
+  const el = document.getElementById('catBreakdown');
+  const cats = categoryBreakdown(currentMonth);
+  if(cats.length===0){ el.innerHTML = '<div class="empty-note">Ingen utgifter loggført denne måneden ennå.</div>'; return; }
+  const max = cats[0][1];
+  el.innerHTML = cats.map(([name,amt])=>`
+    <div class="cat-row">
+      <div class="cat-name">${name}</div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${(amt/max*100).toFixed(1)}%"></div></div>
+      <div class="cat-amount">${fmt(amt)}</div>
+    </div>`).join('');
+}
+
+function renderTxList(){
+  const list = document.getElementById('txList');
+  const m = monthOf(currentMonth);
+  const manual = (DATA[currentMonth]||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  let html = '';
+  html += `
+    <div class="tx-item">
+      <div class="tx-date">${dayLabel(m.loanDate)}</div>
+      <div class="tx-icon locked">&#128274;</div>
+      <div class="tx-mid">
+        <div class="tx-title">Lånekassen</div>
+        <div class="tx-sub">Studielån &middot; automatisk</div>
+      </div>
+      <div class="tx-amt pos">+${fmt(m.loanAmount)}</div>
+      <div class="tx-del spacer">&times;</div>
+    </div>`;
+  manual.forEach(t=>{
+    const isIncome = t.type==='inntekt';
+    html += `
+      <div class="tx-item">
+        <div class="tx-date">${dayLabel(t.date)}</div>
+        <div class="tx-icon ${isIncome?'income':'expense'}">${isIncome? '&#8595;':'&#8593;'}</div>
+        <div class="tx-mid">
+          <div class="tx-title">${t.desc ? t.desc : t.category}</div>
+          <div class="tx-sub">${t.category}</div>
+        </div>
+        <div class="tx-amt ${isIncome?'pos':''}">${isIncome?'+':'-'}${fmt(t.amount)}</div>
+        <button class="tx-del" data-id="${t.id}">&times;</button>
+      </div>`;
+  });
+  list.innerHTML = html;
+  list.querySelectorAll('.tx-del[data-id]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      DATA[currentMonth] = DATA[currentMonth].filter(t=>t.id !== btn.dataset.id);
+      await saveData();
+      renderAll();
+    };
+  });
+}
+
+function renderYearView(){
+  // trend row
+  const trend = document.getElementById('trendRow');
+  const remainders = MONTHS.map(m=>monthTotals(m.id).remaining);
+  const maxAbs = Math.max(1, ...remainders.map(r=>Math.abs(r)));
+  trend.innerHTML = MONTHS.map((m,i)=>{
+    const r = remainders[i];
+    const h = Math.max(4, Math.round(Math.abs(r)/maxAbs*90));
+    const cls = r<0 ? 'neg':'pos';
+    return `<div class="trend-col">
+      <div class="trend-bar ${cls}" style="height:${h}px" title="${m.label}: ${fmt(r)}"></div>
+      <div class="trend-lbl">${m.short}</div>
+    </div>`;
+  }).join('');
+
+  // year totals
+  let totalIncome=0, totalSpent=0;
+  MONTHS.forEach(m=>{ const t=monthTotals(m.id); totalIncome+=t.income; totalSpent+=t.spent; });
+  const totalRemain = totalIncome-totalSpent;
+  document.getElementById('yrIncome').textContent = fmt(totalIncome);
+  document.getElementById('yrSpent').textContent = fmt(totalSpent);
+  const yrRemainEl = document.getElementById('yrRemain');
+  yrRemainEl.textContent = fmt(totalRemain);
+  yrRemainEl.style.color = totalRemain<0 ? 'var(--coral)' : 'var(--sage)';
+
+  // year category breakdown
+  const cats = yearCategoryBreakdown();
+  const el = document.getElementById('yrCatBreakdown');
+  if(cats.length===0){ el.innerHTML = '<div class="empty-note">Ingen utgifter loggført ennå.</div>'; return; }
+  const max = cats[0][1];
+  el.innerHTML = cats.map(([name,amt])=>`
+    <div class="cat-row">
+      <div class="cat-name">${name}</div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${(amt/max*100).toFixed(1)}%"></div></div>
+      <div class="cat-amount">${fmt(amt)}</div>
+    </div>`).join('');
+}
+
+function renderAll(){
+  renderMonthRail();
+  if(currentView==='month'){
+    document.getElementById('monthView').style.display='block';
+    document.getElementById('yearView').style.display='none';
+    document.getElementById('title').textContent = 'Studentbudsjett — ' + monthOf(currentMonth).label;
+    renderOverview();
+    renderCategoryBreakdown();
+    renderTxList();
+  } else {
+    document.getElementById('monthView').style.display='none';
+    document.getElementById('yearView').style.display='block';
+    document.getElementById('title').textContent = 'Studentbudsjett — Årsoversikt';
+    renderYearView();
+  }
+}
+
+/* ---------------- Form handling ---------------- */
+function populateCategorySelect(type){
+  const sel = document.getElementById('fCategory');
+  const cats = type==='inntekt' ? INCOME_CATS : EXPENSE_CATS;
+  sel.innerHTML = cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+function setupForm(){
+  const form = document.getElementById('txForm');
+  const toggleBtn = document.getElementById('toggleForm');
+  const cancelBtn = document.getElementById('cancelForm');
+  const saveBtn = document.getElementById('saveForm');
+  const typeInntekt = document.getElementById('typeInntekt');
+  const typeUtgift = document.getElementById('typeUtgift');
+  let currentType = 'utgift';
+
+  populateCategorySelect(currentType);
+
+  toggleBtn.onclick = ()=>{
+    form.classList.toggle('open');
+    if(form.classList.contains('open')){
+      document.getElementById('fDate').value = currentMonth + '-01';
+      document.getElementById('fAmount').value = '';
+      document.getElementById('fDesc').value = '';
+    }
+  };
+  cancelBtn.onclick = ()=> form.classList.remove('open');
+
+  function setType(t){
+    currentType = t;
+    typeInntekt.classList.toggle('active', t==='inntekt');
+    typeUtgift.classList.toggle('active', t==='utgift');
+    populateCategorySelect(t);
+  }
+  typeInntekt.onclick = ()=>setType('inntekt');
+  typeUtgift.onclick = ()=>setType('utgift');
+
+  saveBtn.onclick = async ()=>{
+    const date = document.getElementById('fDate').value || (currentMonth+'-01');
+    const category = document.getElementById('fCategory').value;
+    const amount = parseFloat(document.getElementById('fAmount').value);
+    const desc = document.getElementById('fDesc').value.trim();
+    if(!amount || amount<=0){ document.getElementById('fAmount').focus(); return; }
+
+    const entry = {
+      id: 'tx'+Date.now()+Math.random().toString(36).slice(2,7),
+      date, type: currentType, category, desc, amount
+    };
+
+    const targetMonth = MONTHS.some(m=>m.id===date.slice(0,7)) ? date.slice(0,7) : currentMonth;
+    if(!DATA[targetMonth]) DATA[targetMonth] = [];
+    DATA[targetMonth].push(entry);
+    await saveData();
+
+    form.classList.remove('open');
+    currentMonth = targetMonth;
+    renderAll();
+  };
+}
+
+/* ---------------- Init ---------------- */
+async function init(){
+  document.getElementById('setupBanner').style.display = supabaseConfigured ? 'none' : 'block';
+  await loadData();
+  const todayKey = new Date().toISOString().slice(0,7);
+  currentMonth = MONTHS.some(m=>m.id===todayKey) ? todayKey : MONTHS[0].id;
+
+  document.getElementById('btn-month').onclick = ()=>{
+    currentView='month';
+    document.getElementById('btn-month').classList.add('active');
+    document.getElementById('btn-year').classList.remove('active');
+    renderAll();
+  };
+  document.getElementById('btn-year').onclick = ()=>{
+    currentView='year';
+    document.getElementById('btn-year').classList.add('active');
+    document.getElementById('btn-month').classList.remove('active');
+    renderAll();
+  };
+
+  setupForm();
+  renderAll();
+}
+init();
+</script>
+</body>
+</html>
