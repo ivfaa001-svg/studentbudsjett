@@ -1,4 +1,4 @@
-const CACHE_NAME = 'studentbudsjett-v1';
+const CACHE_NAME = 'studentbudsjett-v2';
 const APP_SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -12,9 +12,8 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((names) =>
       Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
@@ -24,9 +23,10 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
   if (event.request.method !== 'GET') return;
 
-  // App shell: try the network first so updates show up quickly, fall back to cache when offline.
+  // Always bypass any HTTP cache layer and go straight to the network for our own files,
+  // so an installed home-screen app never gets stuck showing an old version.
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-store' })
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
