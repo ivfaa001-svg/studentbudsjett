@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Studentbudsjett 26/27</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0F1E1A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Budsjett">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -684,6 +691,10 @@ async function init(){
 
   setupForm();
   renderAll();
+
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(e=>console.log('SW-registrering feilet', e));
+  }
 }
 init();
 </script>
