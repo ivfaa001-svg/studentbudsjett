@@ -1,0 +1,16 @@
+{
+  "name": "Studentbudsjett 26/27",
+  "short_name": "Budsjett",
+  "description": "Studentbudsjett med Lånekassens utbetalingsplan og full oversikt over hva du bruker.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0F1E1A",
+  "theme_color": "#0F1E1A",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
