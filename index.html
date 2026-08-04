@@ -73,6 +73,33 @@
   }
   .setup-banner code{background:rgba(0,0,0,0.25);padding:1px 6px;border-radius:5px;font-size:11.5px;}
 
+  /* ---------- Donut chart ---------- */
+  .donut-wrap{display:flex;align-items:center;gap:28px;flex-wrap:wrap;}
+  .donut{
+    width:150px;height:150px;border-radius:50%;flex:0 0 auto;position:relative;
+    background:var(--surface-2);transition:background 1s;
+  }
+  .donut-hole{
+    position:absolute;inset:20%;border-radius:50%;background:var(--surface);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+  }
+  .donut-hole span{font-family:'Fraunces',serif;font-size:17px;font-weight:500;color:var(--ink);}
+  .donut-hole small{font-size:10px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+  .donut-legend{flex:1;min-width:180px;display:flex;flex-direction:column;gap:8px;}
+  .legend-row{display:flex;align-items:center;gap:9px;font-size:13px;}
+  .legend-dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+  .legend-name{flex:1;color:var(--ink-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .legend-amt{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;}
+
+  /* ---------- Compare bars (year view) ---------- */
+  .compare-row{display:flex;align-items:flex-end;gap:10px;height:130px;}
+  .compare-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px;}
+  .compare-bars{display:flex;align-items:flex-end;gap:3px;height:100%;}
+  .compare-bar{width:11px;border-radius:4px 4px 2px 2px;min-height:3px;transition:height .4s;}
+  .compare-bar.income{background:linear-gradient(180deg, var(--gold), var(--gold-dim));}
+  .compare-bar.spent{background:linear-gradient(180deg, var(--coral), var(--coral-dim));}
+  .compare-lbl{font-size:10px;color:var(--ink-faint);}
+
   /* ---------- Month rail ---------- */
   .month-rail{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 14px;margin-bottom:18px;scrollbar-width:none;}
   .month-rail::-webkit-scrollbar{display:none;}
@@ -288,7 +315,10 @@
 
     <div class="card">
       <h2>Hvor pengene går <span class="muted">utgifter denne måneden, etter kategori</span></h2>
-      <div id="catBreakdown"></div>
+      <div class="donut-wrap">
+        <div class="donut" id="catDonut"><div class="donut-hole"><span id="donutTotal">0 kr</span><small>totalt</small></div></div>
+        <div id="catBreakdown" class="donut-legend"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -344,6 +374,11 @@
     <div class="card">
       <h2>Saldo per måned <span class="muted">hva du sitter igjen med, hele året</span></h2>
       <div class="trend-row" id="trendRow"></div>
+    </div>
+
+    <div class="card">
+      <h2>Inntekt vs. brukt <span class="muted">gult er lån/inntekt, korall er det du brukte</span></h2>
+      <div class="compare-row" id="compareRow"></div>
     </div>
 
     <div class="card">
@@ -528,16 +563,37 @@ function renderOverview(){
     : (pct < 25 ? 'linear-gradient(180deg, var(--gold), var(--coral-dim))' : 'linear-gradient(180deg, var(--sage), var(--sage-dim))');
 }
 
+const DONUT_COLORS = ['#D9A94E','#E3694E','#7FAE8C','#6C93B0','#B98BC9','#C97B4A','#4FA8A0','#D1C24E'];
+
 function renderCategoryBreakdown(){
-  const el = document.getElementById('catBreakdown');
+  const donut = document.getElementById('catDonut');
+  const legend = document.getElementById('catBreakdown');
   const cats = categoryBreakdown(currentMonth);
-  if(cats.length===0){ el.innerHTML = '<div class="empty-note">Ingen utgifter loggført denne måneden ennå.</div>'; return; }
-  const max = cats[0][1];
-  el.innerHTML = cats.map(([name,amt])=>`
-    <div class="cat-row">
-      <div class="cat-name">${name}</div>
-      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${(amt/max*100).toFixed(1)}%"></div></div>
-      <div class="cat-amount">${fmt(amt)}</div>
+
+  if(cats.length===0){
+    donut.style.background = 'var(--surface-2)';
+    document.getElementById('donutTotal').textContent = '0 kr';
+    legend.innerHTML = '<div class="empty-note">Ingen utgifter loggført denne måneden ennå.</div>';
+    return;
+  }
+
+  const total = cats.reduce((s,[,amt])=>s+amt,0);
+  let acc = 0;
+  const stops = cats.map(([name,amt],i)=>{
+    const start = (acc/total)*360;
+    acc += amt;
+    const end = (acc/total)*360;
+    const color = DONUT_COLORS[i % DONUT_COLORS.length];
+    return `${color} ${start.toFixed(2)}deg ${end.toFixed(2)}deg`;
+  }).join(', ');
+  donut.style.background = `conic-gradient(${stops})`;
+  document.getElementById('donutTotal').textContent = fmt(total);
+
+  legend.innerHTML = cats.map(([name,amt],i)=>`
+    <div class="legend-row">
+      <span class="legend-dot" style="background:${DONUT_COLORS[i % DONUT_COLORS.length]}"></span>
+      <span class="legend-name">${name}</span>
+      <span class="legend-amt">${fmt(amt)}</span>
     </div>`).join('');
 }
 
@@ -645,6 +701,23 @@ function renderYearView(){
     return `<div class="trend-col">
       <div class="trend-bar ${cls}" style="height:${h}px" title="${m.label}: ${fmt(r)}"></div>
       <div class="trend-lbl">${m.short}</div>
+    </div>`;
+  }).join('');
+
+  // income vs spent grouped bars
+  const compare = document.getElementById('compareRow');
+  const monthTotalsArr = MONTHS.map(m=>monthTotals(m.id));
+  const maxVal = Math.max(1, ...monthTotalsArr.map(t=>Math.max(t.income, t.spent)));
+  compare.innerHTML = MONTHS.map((m,i)=>{
+    const t = monthTotalsArr[i];
+    const hIncome = Math.max(3, Math.round(t.income/maxVal*100));
+    const hSpent = Math.max(3, Math.round(t.spent/maxVal*100));
+    return `<div class="compare-col">
+      <div class="compare-bars" title="${m.label}: ${fmt(t.income)} inn / ${fmt(t.spent)} brukt">
+        <div class="compare-bar income" style="height:${hIncome}px"></div>
+        <div class="compare-bar spent" style="height:${hSpent}px"></div>
+      </div>
+      <div class="compare-lbl">${m.short}</div>
     </div>`;
   }).join('');
 
