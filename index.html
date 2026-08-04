@@ -138,6 +138,27 @@
   .empty-note{color:var(--ink-faint);font-size:13px;padding:6px 0;}
 
   /* ---------- Transactions ---------- */
+  .tx-search{
+    width:100%;background:var(--surface-2);border:1px solid var(--line-strong);color:var(--ink);
+    border-radius:10px;padding:10px 14px;font-family:inherit;font-size:13.5px;outline:none;margin-bottom:14px;
+  }
+  .tx-search::placeholder{color:var(--ink-faint);}
+  .tx-search:focus{border-color:var(--gold);}
+  .tx-empty-search{color:var(--ink-faint);font-size:13px;padding:10px 0;}
+
+  /* ---------- Undo toast ---------- */
+  .undo-toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120%);
+    background:var(--ink);color:var(--bg-2);border-radius:999px;padding:11px 12px 11px 18px;
+    display:flex;align-items:center;gap:14px;font-size:13.5px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.4);
+    transition:transform .3s cubic-bezier(.4,0,.2,1);z-index:50;
+  }
+  .undo-toast.show{transform:translateX(-50%) translateY(0);}
+  .undo-toast button{
+    background:var(--gold);border:none;color:#1B1305;border-radius:999px;padding:7px 14px;
+    font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;
+  }
+
   .tx-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
   .tx-head h2{margin:0;}
   .add-btn{
@@ -312,6 +333,7 @@
         </div>
       </div>
 
+      <input type="text" id="txSearch" class="tx-search" placeholder="Søk i transaksjoner … (f.eks. Rema, husleie)">
       <div class="tx-list" id="txList"></div>
     </div>
   </div>
@@ -343,6 +365,11 @@
     Studielånet legges inn automatisk hver måned etter Lånekassens utbetalingsplan — du trenger ikke føre det selv.<br>
     Alt annet du logger her lagres kun for deg.
   </footer>
+
+  <div class="undo-toast" id="undoToast">
+    <span id="undoText">Transaksjon slettet</span>
+    <button id="undoBtn">Angre</button>
+  </div>
 </div>
 
 <script>
@@ -514,22 +541,36 @@ function renderCategoryBreakdown(){
     </div>`).join('');
 }
 
+let searchTerm = '';
+let lastDeleted = null; // {month, tx} for undo
+let undoTimer = null;
+
 function renderTxList(){
   const list = document.getElementById('txList');
   const m = monthOf(currentMonth);
-  const manual = (DATA[currentMonth]||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const term = searchTerm.trim().toLowerCase();
+  let manual = (DATA[currentMonth]||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if(term){
+    manual = manual.filter(t =>
+      (t.desc||'').toLowerCase().includes(term) || (t.category||'').toLowerCase().includes(term)
+    );
+  }
+
+  const showLoan = !term || 'lånekassen'.includes(term) || 'studielån'.includes(term);
   let html = '';
-  html += `
-    <div class="tx-item">
-      <div class="tx-date">${dayLabel(m.loanDate)}</div>
-      <div class="tx-icon locked">&#128274;</div>
-      <div class="tx-mid">
-        <div class="tx-title">Lånekassen</div>
-        <div class="tx-sub">Studielån &middot; automatisk</div>
-      </div>
-      <div class="tx-amt pos">+${fmt(m.loanAmount)}</div>
-      <div class="tx-del spacer">&times;</div>
-    </div>`;
+  if(showLoan){
+    html += `
+      <div class="tx-item">
+        <div class="tx-date">${dayLabel(m.loanDate)}</div>
+        <div class="tx-icon locked">&#128274;</div>
+        <div class="tx-mid">
+          <div class="tx-title">Lånekassen</div>
+          <div class="tx-sub">Studielån &middot; automatisk</div>
+        </div>
+        <div class="tx-amt pos">+${fmt(m.loanAmount)}</div>
+        <div class="tx-del spacer">&times;</div>
+      </div>`;
+  }
   manual.forEach(t=>{
     const isIncome = t.type==='inntekt';
     html += `
@@ -544,14 +585,52 @@ function renderTxList(){
         <button class="tx-del" data-id="${t.id}">&times;</button>
       </div>`;
   });
+  if(term && manual.length===0 && !showLoan){
+    html += `<div class="tx-empty-search">Ingen treff på «${term}».</div>`;
+  }
   list.innerHTML = html;
   list.querySelectorAll('.tx-del[data-id]').forEach(btn=>{
     btn.onclick = async ()=>{
-      DATA[currentMonth] = DATA[currentMonth].filter(t=>t.id !== btn.dataset.id);
+      const id = btn.dataset.id;
+      const tx = (DATA[currentMonth]||[]).find(t=>t.id===id);
+      DATA[currentMonth] = DATA[currentMonth].filter(t=>t.id !== id);
       await saveData();
+      if(tx) showUndoToast(currentMonth, tx);
       renderAll();
     };
   });
+}
+
+function showUndoToast(month, tx){
+  lastDeleted = {month, tx};
+  const toast = document.getElementById('undoToast');
+  document.getElementById('undoText').textContent = `Slettet: ${tx.desc || tx.category}`;
+  toast.classList.add('show');
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(()=>{ toast.classList.remove('show'); lastDeleted = null; }, 6000);
+}
+
+function setupUndo(){
+  document.getElementById('undoBtn').onclick = async ()=>{
+    if(!lastDeleted) return;
+    const {month, tx} = lastDeleted;
+    if(!DATA[month]) DATA[month] = [];
+    DATA[month].push(tx);
+    await saveData();
+    document.getElementById('undoToast').classList.remove('show');
+    clearTimeout(undoTimer);
+    lastDeleted = null;
+    currentMonth = month;
+    renderAll();
+  };
+}
+
+function setupSearch(){
+  const input = document.getElementById('txSearch');
+  input.oninput = ()=>{
+    searchTerm = input.value;
+    renderTxList();
+  };
 }
 
 function renderYearView(){
@@ -690,6 +769,8 @@ async function init(){
   };
 
   setupForm();
+  setupUndo();
+  setupSearch();
   renderAll();
 
   if('serviceWorker' in navigator){
