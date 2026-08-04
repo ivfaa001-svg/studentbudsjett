@@ -847,7 +847,15 @@ async function init(){
   renderAll();
 
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js').catch(e=>console.log('SW-registrering feilet', e));
+    navigator.serviceWorker.register('./sw.js').then(reg=>{
+      reg.update();
+      reg.addEventListener('updatefound', ()=>{
+        const sw = reg.installing;
+        sw && sw.addEventListener('statechange', ()=>{
+          if(sw.state === 'activated') location.reload();
+        });
+      });
+    }).catch(e=>console.log('SW-registrering feilet', e));
   }
 }
 init();
