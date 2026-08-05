@@ -33,21 +33,57 @@
     --radius-lg: 22px;
     --radius-md: 14px;
     --radius-sm: 9px;
+    --bg-gradient-1: rgba(217,169,78,0.08);
+    --bg-gradient-2: rgba(127,174,140,0.07);
+  }
+  body.light-mode{
+    --bg: #F4F1E8;
+    --bg-2: #EAE4D2;
+    --surface: #FFFDF7;
+    --surface-2: #EFE9D8;
+    --line: rgba(43,40,32,0.09);
+    --line-strong: rgba(43,40,32,0.18);
+    --ink: #2B2820;
+    --ink-dim: #665F4E;
+    --ink-faint: #96907C;
+    --gold: #B5761F;
+    --gold-dim: #EAD9B8;
+    --coral: #C24A34;
+    --coral-dim: #F3D9CE;
+    --sage: #3F7D53;
+    --sage-dim: #D8E6DA;
+    --bg-gradient-1: rgba(181,118,31,0.08);
+    --bg-gradient-2: rgba(63,125,83,0.06);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
     background:
-      radial-gradient(1200px 600px at 15% -10%, rgba(217,169,78,0.08), transparent 60%),
-      radial-gradient(900px 500px at 100% 0%, rgba(127,174,140,0.07), transparent 55%),
+      radial-gradient(1200px 600px at 15% -10%, var(--bg-gradient-1), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, var(--bg-gradient-2), transparent 55%),
       var(--bg);
     color:var(--ink);
     font-family:'Instrument Sans', sans-serif;
     -webkit-font-smoothing:antialiased;
     min-height:100vh;
     padding:28px 16px 80px;
+    transition:background-color .6s, color .6s;
   }
   .wrap{max-width:760px;margin:0 auto;}
+
+  /* ---------- Sync status ---------- */
+  .sync-status{
+    font-size:11px;color:var(--ink-faint);display:flex;align-items:center;gap:5px;margin:0 0 4px;
+  }
+  .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--sage);flex:0 0 auto;}
+  .sync-dot.stale{background:var(--gold);}
+  .sync-dot.offline{background:var(--coral);}
+  .export-btn{
+    background:transparent;border:1px solid var(--line-strong);color:var(--ink-faint);
+    border-radius:999px;padding:4px 11px;font-family:inherit;font-size:11px;cursor:pointer;
+    transition:color .15s,border-color .15s;
+  }
+  .export-btn:hover{color:var(--ink);border-color:var(--ink-dim);}
 
   /* ---------- Header ---------- */
   header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap;}
@@ -281,6 +317,12 @@
     </div>
   </header>
 
+  <div class="sync-status" id="syncStatus">
+    <span class="sync-dot" id="syncDot"></span>
+    <span id="syncText">Laster …</span>
+    <span style="margin-left:auto;"><button id="exportBtn" class="export-btn">Eksporter data</button></span>
+  </div>
+
   <div class="setup-banner" id="setupBanner" style="display:none;">
     <strong>Ikke koblet til database ennå.</strong>
     Fyll inn <code>SUPABASE_URL</code> og <code>SUPABASE_KEY</code> øverst i &lt;script&gt;-taggen (se instruksjonene du fikk) for at data skal synke mellom laptop og telefon.
@@ -468,6 +510,9 @@ const sbHeaders = {
 const LS_KEY = 'studentbudsjett-2026-2027';
 const hasCloudStorage = !!(window.storage && typeof window.storage.get === 'function');
 
+let lastSyncTime = null;
+let lastSyncOk = true;
+
 async function loadData(){
   try{
     if(supabaseConfigured){
@@ -482,12 +527,15 @@ async function loadData(){
       const raw = localStorage.getItem(LS_KEY);
       DATA = raw ? JSON.parse(raw) : {};
     }
-  }catch(e){ console.error('Kunne ikke laste data', e); DATA = {}; }
+    lastSyncTime = new Date();
+    lastSyncOk = true;
+  }catch(e){ console.error('Kunne ikke laste data', e); DATA = {}; lastSyncOk = false; }
   let changed = false;
   MONTHS.forEach(m=>{
     if(!DATA[m.id]){ DATA[m.id] = SEED[m.id] ? JSON.parse(JSON.stringify(SEED[m.id])) : []; changed = true; }
   });
   if(changed) await saveData();
+  renderSyncStatus();
 }
 async function saveData(){
   try{
@@ -503,8 +551,65 @@ async function saveData(){
     } else {
       localStorage.setItem(LS_KEY, JSON.stringify(DATA));
     }
+    lastSyncTime = new Date();
+    lastSyncOk = true;
   }
-  catch(e){ console.error('Kunne ikke lagre', e); }
+  catch(e){ console.error('Kunne ikke lagre', e); lastSyncOk = false; }
+  renderSyncStatus();
+}
+
+function renderSyncStatus(){
+  const dot = document.getElementById('syncDot');
+  const text = document.getElementById('syncText');
+  if(!dot || !text) return;
+  if(!navigator.onLine){
+    dot.className = 'sync-dot offline';
+    text.textContent = 'Ingen nettforbindelse';
+    return;
+  }
+  if(!lastSyncOk){
+    dot.className = 'sync-dot offline';
+    text.textContent = 'Klarte ikke synke';
+    return;
+  }
+  if(!lastSyncTime){
+    dot.className = 'sync-dot stale';
+    text.textContent = 'Laster …';
+    return;
+  }
+  const secs = Math.floor((Date.now() - lastSyncTime.getTime())/1000);
+  let label;
+  if(secs < 10) label = 'Synket akkurat nå';
+  else if(secs < 60) label = `Synket for ${secs} sek siden`;
+  else if(secs < 3600) label = `Synket for ${Math.floor(secs/60)} min siden`;
+  else label = `Synket for ${Math.floor(secs/3600)} t siden`;
+  dot.className = 'sync-dot' + (secs > 300 ? ' stale' : '');
+  text.textContent = label;
+}
+
+/* ---------------- Theme (auto light/dark by time of day) ---------------- */
+function applyTheme(){
+  const hour = new Date().getHours();
+  const isDay = hour >= 7 && hour < 20;
+  document.body.classList.toggle('light-mode', isDay);
+}
+
+/* ---------------- Export / backup ---------------- */
+function exportData(){
+  const exportObj = {
+    exportert: new Date().toISOString(),
+    studieaar: '2026/2027',
+    maaneder: DATA
+  };
+  const blob = new Blob([JSON.stringify(exportObj, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `studentbudsjett-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 /* ---------------- Computation ---------------- */
@@ -845,6 +950,19 @@ async function init(){
   setupUndo();
   setupSearch();
   renderAll();
+
+  // Theme: auto light/dark by time of day
+  applyTheme();
+  setInterval(applyTheme, 5*60*1000);
+
+  // Sync status: re-render relative time regularly, and react to connection changes
+  renderSyncStatus();
+  setInterval(renderSyncStatus, 15*1000);
+  window.addEventListener('online', renderSyncStatus);
+  window.addEventListener('offline', renderSyncStatus);
+
+  // Export button
+  document.getElementById('exportBtn').onclick = exportData;
 
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw.js').then(reg=>{
