@@ -887,7 +887,9 @@ function setupForm(){
   toggleBtn.onclick = ()=>{
     form.classList.toggle('open');
     if(form.classList.contains('open')){
-      document.getElementById('fDate').value = currentMonth + '-01';
+      const todayISO = new Date().toISOString().slice(0,10);
+      const todayMonth = todayISO.slice(0,7);
+      document.getElementById('fDate').value = (todayMonth === currentMonth) ? todayISO : currentMonth + '-01';
       document.getElementById('fAmount').value = '';
       document.getElementById('fDesc').value = '';
     }
